@@ -24,6 +24,8 @@ const createScene = async function () {
 
     
     const light = new DirectionalLight("light", new Vector3(0, -1, 0.45), scene);
+    light.specular = Color3.Gray();
+    
 
     // Initialize physics
     const havokInstance = await HavokPhysics();
@@ -51,7 +53,7 @@ const createScene = async function () {
 
     // Define character position
     let characterMesh = MeshBuilder.CreateSphere("character", { diameter : 2 ,segments : 8}, scene);
-    let characterPhysics = new PhysicsAggregate(characterMesh, PhysicsShapeType.SPHERE, { mass: 1,restitution : 0.60,friction :0.92, mesh : characterMesh}, scene);
+    let characterPhysics = new PhysicsAggregate(characterMesh, PhysicsShapeType.SPHERE, { mass: 1,restitution : 0.30,friction :0.92, mesh : characterMesh}, scene);
     characterMesh.position = new Vector3(0, 20, 0);
     characterMesh.material = new StandardMaterial("characterMaterial", scene);
     characterMesh.material.diffuseTexture = new Texture(TextureChar, scene);
@@ -59,7 +61,7 @@ const createScene = async function () {
     
 
     // shadow generator
-    const shadowGenerator = new ShadowGenerator(2048, light);
+    const shadowGenerator = new ShadowGenerator(4096, light);
     shadowGenerator.addShadowCaster(characterMesh);
     shadowGenerator.addShadowCaster(ground);
     shadowGenerator.addShadowCaster(ramp);
@@ -90,7 +92,7 @@ const createScene = async function () {
         
         // Jump logic
         if (inputMap[" "] && !isJumping) {
-            characterPhysics.body.applyImpulse(new Vector3(0, 5, 0), characterMesh.position);
+            characterPhysics.body.applyImpulse(new Vector3(0, 15, 0), characterMesh.position);
             isJumping = true;
             setTimeout(() => {
                 isJumping = false;
