@@ -23,7 +23,7 @@ Night-Like is a BabylonJS-based platformer game that aims to provide a realistic
     ```
 3. Run the development server:
     ```sh
-    npm start
+    npm run start
     ```
 
 ## Future Goals
@@ -32,10 +32,6 @@ Night-Like is a BabylonJS-based platformer game that aims to provide a realistic
 - **Enhanced Physics**: Further refine the physics interactions for more realistic behavior.
 - **Expanded Levels**: Create multiple levels with increasing difficulty and complexity.
 - **Multiplayer Support**: Implement multiplayer features for a shared gaming experience.
-
-## Contributing
-
-Contributions are welcome! Please fork the repository and submit a pull request with your changes.
 
 ## License
 
