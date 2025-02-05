@@ -21,7 +21,7 @@ class ThirdPersonCamera {
         const targetPosition = this.target.position;
         const cameraPosition = new Vector3(
             targetPosition.x - this.radius * Math.sin(this.rotationOffset * Math.PI / 180),
-            targetPosition.y + this.heightOffset,
+            targetPosition.y - this.radius * Math.sin(this.heightOffset * Math.PI / 180),
             targetPosition.z - this.radius * Math.cos(this.rotationOffset * Math.PI / 180)
         );
         this.camera.position = cameraPosition;
@@ -45,10 +45,8 @@ class ThirdPersonCamera {
                 switch (pointerInfo.type) {
                     case PointerEventTypes.POINTERMOVE:
                         const event = pointerInfo.event;
-                        this.rotationOffset -= event.movementX * 0.015;
-                        this.heightOffset -= event.movementY * 0.015; // Adjust height with vertical mouse movement
-                        this.heightOffset = Math.max(-this.radius*2, Math.min(this.heightOffset, this.radius*2)); // Limit height offset
-                        break;
+                        this.rotationOffset += event.movementX * 0.045;
+                        this.heightOffset -= event.movementY * 0.045;
                 }
             }
         });
