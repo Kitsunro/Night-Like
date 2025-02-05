@@ -38,16 +38,16 @@ const createScene = async function () {
 
     // Create elevated platforms
     const platform1 = BABYLON.MeshBuilder.CreateBox("platform1", {width: 3, height: 0.5, depth: 3}, scene);
-    platform1.position = new BABYLON.Vector3(-8, 10, 0);
+    platform1.position = new BABYLON.Vector3(-2, 2, 0);
     new BABYLON.PhysicsAggregate(platform1, BABYLON.PhysicsShapeType.BOX, { mass: 0 }, scene);
 
     const platform2 = BABYLON.MeshBuilder.CreateBox("platform2", {width: 3, height: 0.5, depth: 3}, scene);
-    platform2.position = new BABYLON.Vector3(8, 10, 0);
+    platform2.position = new BABYLON.Vector3(2, 2, 0);
     new BABYLON.PhysicsAggregate(platform2, BABYLON.PhysicsShapeType.BOX, { mass: 0 }, scene);
 
     // Create a ramp to allow the character to get back up
-    const ramp = BABYLON.MeshBuilder.CreateBox("ramp", {width: 1, height: 0.5, depth: 20}, scene);
-    ramp.position = new BABYLON.Vector3(0, 5, -2.5);
+    const ramp = BABYLON.MeshBuilder.CreateBox("ramp", {width: 1, height: 0.5, depth: 5}, scene);
+    ramp.position = new BABYLON.Vector3(0, 1, -2.5);
     ramp.rotation.x = Math.PI / 6; // Rotate the ramp to create an incline
     new BABYLON.PhysicsAggregate(ramp, BABYLON.PhysicsShapeType.BOX, { mass: 0 }, scene);
 
@@ -80,7 +80,12 @@ const createScene = async function () {
 
     let inputMap = {};
     let isJumping = false;
+    let isDoubleJumping = false;
+    let spaceReleased = true; // Track if space key is released
     let verticalVelocity = 0;
+    let moveVelocity = new BABYLON.Vector3(0, 0, 0);
+    const dampingFactor = 0.9;
+    const normalSpeed = 5;
 
     // Input event listeners
     window.addEventListener("keydown", (event) => {
@@ -88,6 +93,9 @@ const createScene = async function () {
     });
     window.addEventListener("keyup", (event) => {
         inputMap[event.key] = false;
+        if (event.key === " ") {
+            spaceReleased = true; // Mark space as released
+        }
     });
 
     // Update character movement
@@ -113,19 +121,27 @@ const createScene = async function () {
         );
 
         moveDirection = cameraForward.scale(moveDirection.z).add(cameraRight.scale(moveDirection.x));
-        moveDirection = moveDirection.normalize().scale(10);
+        moveDirection = moveDirection.normalize().scale(normalSpeed);
+
+        // Apply damping to moveVelocity
+        moveVelocity = moveVelocity.scale(dampingFactor).add(moveDirection.scale(1 - dampingFactor));
 
         // Jump logic
         if (inputMap[" "] && !isJumping) {
             verticalVelocity = 7;
             isJumping = true;
+            spaceReleased = false; // Mark space as pressed
+        } else if (inputMap[" "] && isJumping && !isDoubleJumping && spaceReleased) {
+            verticalVelocity = 7;
+            isDoubleJumping = true;
+            spaceReleased = false; // Mark space as pressed
         }
         
         verticalVelocity -= 9.81 * dt;
-        moveDirection.y = verticalVelocity;
+        moveVelocity.y = verticalVelocity;
         
         // Apply movement
-        characterPhysics.body.setLinearVelocity(moveDirection);
+        characterPhysics.body.setLinearVelocity(moveVelocity);
         
         // Raycast to check if on ground
         const ray = new BABYLON.Ray(characterMesh.position, new BABYLON.Vector3(0, -1, 0), 1.1);
@@ -136,6 +152,7 @@ const createScene = async function () {
         if (hit.hit) {
             verticalVelocity = 0;
             isJumping = false;
+            isDoubleJumping = false;
         }
 
         // Check for collision with ramp and apply upward force

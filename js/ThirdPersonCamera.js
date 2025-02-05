@@ -5,7 +5,7 @@ class ThirdPersonCamera {
 
         // Set camera properties
         this.radius = 10; // How far from the object to follow
-        this.heightOffset = 4; // How high above the object to place the camera
+        this.heightOffset = 5; // Fixed height above the object to place the camera
         this.rotationOffset = 0; // The viewing angle
 
         // Attach control to the canvas
@@ -53,8 +53,7 @@ class ThirdPersonCamera {
                     case BABYLON.PointerEventTypes.POINTERMOVE:
                         const event = pointerInfo.event;
                         this.rotationOffset -= event.movementX * 0.05;
-                        this.heightOffset -= event.movementY * 0.015; // Adjust height with vertical mouse movement
-                        this.heightOffset = Math.max(-this.radius*2, Math.min(this.heightOffset, this.radius*2)); // Limit height offset
+                        // Remove vertical adjustment
                         break;
                 }
             }
