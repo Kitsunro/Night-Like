@@ -1,5 +1,9 @@
-import { Engine, Scene, FreeCamera, HemisphericLight, MeshBuilder, Vector3, PhysicsShapeType, PhysicsAggregate, HavokPlugin } from "@babylonjs/core";
+import { Engine, Scene, FreeCamera, HemisphericLight, MeshBuilder, Color3, Vector3, PhysicsShapeType, PhysicsAggregate, HavokPlugin, StandardMaterial, Texture } from "@babylonjs/core";
 import HavokPhysics from "@babylonjs/havok";
+import ThirdPersonCamera from "./ThirdPersoneCamera";
+import TextureChar from "./../assets/player/red.webp";
+import TextureGround from "./../assets/ground/ground1.webp";
+import TextureSkybox from "./../assets/skybox.jpeg";
 
 let canvas;
 let engine;
@@ -14,14 +18,15 @@ globalThis.HK = await HavokPhysics();
 
 const createScene = async function () {
     const scene = new Scene(engine);
-
-    const camera = new FreeCamera("camera1", new Vector3(0, 5, -10), scene);
-    camera.setTarget(Vector3.Zero());
     
     const light = new HemisphericLight("light", new Vector3(0, 1, 0), scene);
     light.intensity = 0.7;
 
-    const ground = MeshBuilder.CreateGround("ground", {width: 10, height: 10}, scene);
+
+
+    const ground = MeshBuilder.CreateGround("ground", {width: 30, height: 30}, scene);
+    ground.material = new StandardMaterial("groundMaterial", scene);
+    ground.material.diffuseTexture = new Texture(TextureGround, scene);
 
     // Initialize physics
     const havokInstance = await HavokPhysics();
@@ -32,13 +37,19 @@ const createScene = async function () {
 
     // Define character position
     const characterPosition = new Vector3(0, 1, 0);
-    const h = 2;
-    const r = 0.5;
 
-    let characterMesh = MeshBuilder.CreateCapsule("character", { height: h, radius: r }, scene);
+    let characterMesh = MeshBuilder.CreateSphere("character", { diameter : 2 }, scene);
+    let characterPhysics = new PhysicsAggregate(characterMesh, PhysicsShapeType.SPHERE, { mass: 1 }, scene);
     characterMesh.position = characterPosition;
+    characterMesh.material = new StandardMaterial("characterMaterial", scene);
+    
+    characterMesh.material.diffuseTexture = new Texture(TextureChar, scene);
 
-    let characterPhysics = new PhysicsAggregate(characterMesh, PhysicsShapeType.CAPSULE, { mass: 1 }, scene);
+
+
+    const thirdPersonCamera = new ThirdPersonCamera(scene, characterMesh);
+    const camera = thirdPersonCamera.getCamera();
+
 
     let inputMap = {};
     let isJumping = false;
@@ -54,32 +65,21 @@ const createScene = async function () {
     // Update character position based on input
     scene.onBeforeRenderObservable.add(() => {
         const dt = engine.getDeltaTime() / 1000; // Convert ms to seconds
-        let moveDirection = new Vector3(0, 0, 0);
         
-        if (inputMap["ArrowUp"]) moveDirection.z += 1;
-        if (inputMap["ArrowDown"]) moveDirection.z -= 1;
-        if (inputMap["ArrowLeft"]) moveDirection.x -= 1;
-        if (inputMap["ArrowRight"]) moveDirection.x += 1;
+        if (inputMap["ArrowUp"]) characterPhysics.body.applyImpulse(new Vector3(0, 0, 0.1), characterMesh.position);
+        if (inputMap["ArrowDown"]) characterPhysics.body.applyImpulse(new Vector3(0, 0, -0.1), characterMesh.position);
+        if (inputMap["ArrowLeft"]) characterPhysics.body.applyImpulse(new Vector3(-0.1, 0, 0), characterMesh.position);
+        if (inputMap["ArrowRight"]) characterPhysics.body.applyImpulse(new Vector3(0.1, 0, 0), characterMesh.position);
+
         
-        moveDirection = moveDirection.normalize().scale(2);
         
         // Jump logic
         if (inputMap[" "] && !isJumping) {
-            verticalVelocity = 7;
+            characterPhysics.body.applyImpulse(new Vector3(0, 5, 0), characterMesh.position);
             isJumping = true;
-        }
-        
-        verticalVelocity -= 9.81 * dt;
-        moveDirection.y = verticalVelocity;
-        
-        // Apply movement
-        characterPhysics.body.setLinearVelocity(moveDirection);
-        
-        // Check if on ground
-        if (characterMesh.position.y <= 1) {
-            verticalVelocity = 0;
-            isJumping = false;
-            characterMesh.position.y = 1;
+            setTimeout(() => {
+                isJumping = false;
+            }, 1000);
         }
     });
 
