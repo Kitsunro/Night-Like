@@ -53,12 +53,14 @@ const createScene = async function () {
 
     // Define character position
     let characterMesh = MeshBuilder.CreateSphere("character", { diameter : 2 ,segments : 8}, scene);
-    let characterPhysics = new PhysicsAggregate(characterMesh, PhysicsShapeType.SPHERE, { mass: 1,restitution : 0.30,friction :0.92, mesh : characterMesh}, scene);
+    let characterPhysics = new PhysicsAggregate(characterMesh, PhysicsShapeType.SPHERE, { mass: 0.5, restitution : 0.30,friction :1, mesh : characterMesh}, scene);
     characterMesh.position = new Vector3(0, 20, 0);
     characterMesh.material = new StandardMaterial("characterMaterial", scene);
     characterMesh.material.diffuseTexture = new Texture(TextureChar, scene);
     characterMesh.receiveShadows = true;
+    characterPhysics.body.setLinearDamping(0.4);
     
+    characterPhysics.body.setCollisionCallbackEnabled(true);
 
     // shadow generator
     const shadowGenerator = new ShadowGenerator(4096, light);
@@ -84,19 +86,32 @@ const createScene = async function () {
 
     // Update character position based on input
     scene.onBeforeRenderObservable.add(() => {
-        const dt = engine.getDeltaTime() / 1000; // Convert ms to seconds
+        //const dt = engine.getDeltaTime() / 1000; // Convert ms to seconds
+
+        // Clamp character velocity
+        const velocity = characterPhysics.body.getLinearVelocity();
+        const maxVelocity = 25;
+
+        if (velocity.length() > maxVelocity) {
+            characterPhysics.body.setLinearVelocity(velocity.scale(maxVelocity / velocity.length()));
+        }
 
         const keyboard = new Keyboard(scene, camera, window);
         
         keyboard.updateCharacterVelocity(characterPhysics, characterMesh, camera, inputMap);
         
+        
         // Jump logic
         if (inputMap[" "] && !isJumping) {
-            characterPhysics.body.applyImpulse(new Vector3(0, 15, 0), characterMesh.position);
+            characterPhysics.body.applyImpulse(new Vector3(0, 5, 0), characterMesh.position);
             isJumping = true;
-            setTimeout(() => {
-                isJumping = false;
-            }, 1000);
+            // Add collision observable to reset jump state each time the character lands
+            const observable = characterPhysics.body.getCollisionObservable();
+            if (observable) {
+                observable.add(() => {
+                    isJumping = false;
+                });
+            }
         }
     });
 
