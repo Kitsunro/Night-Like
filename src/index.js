@@ -1,7 +1,8 @@
-import { Engine, Scene, ShadowGenerator, FreeCamera, HemisphericLight, MeshBuilder, Color3, Vector3, PhysicsShapeType, PhysicsAggregate, HavokPlugin, StandardMaterial, Texture, DirectionalLight } from "@babylonjs/core";
+import { Engine, Scene, SceneLoader , CubeTexture, ShadowGenerator, FreeCamera, HemisphericLight, MeshBuilder, Color3, Vector3, PhysicsShapeType, PhysicsAggregate, HavokPlugin, StandardMaterial, Texture, DirectionalLight } from "@babylonjs/core";
 import Inspector from "@babylonjs/inspector";
 import ThirdPersonCamera from "./ThirdPersoneCamera";
 import Keyboard from "./Keyboard";
+import SkyboxMaker from "./Loaders/SkyboxMaker";
 import HavokPhysics from "@babylonjs/havok";
 import TextureChar from "./../assets/player/red.webp";
 import TextureGround from "./../assets/ground/ground1.webp";
@@ -25,7 +26,18 @@ const createScene = async function () {
     
     const light = new DirectionalLight("light", new Vector3(0, -1, 0.45), scene);
     light.specular = Color3.Gray();
-    
+
+    // Skybox hdr
+    const skyboxIMGs = SkyboxMaker.getImages();
+    const skybox = MeshBuilder.CreateBox("skybox", { size: 1000 }, scene);
+    const skyboxMaterial = new StandardMaterial("skyboxMaterial", scene);
+    skyboxMaterial.backFaceCulling = false;
+    skyboxMaterial.disableLighting = true;
+    skybox.material = skyboxMaterial;
+    skybox.infiniteDistance = true;
+    skyboxMaterial.disableLighting = true;
+    skyboxMaterial.reflectionTexture = CubeTexture.CreateFromImages(skyboxIMGs, scene);
+    skyboxMaterial.reflectionTexture.coordinatesMode = Texture.SKYBOX_MODE;
 
     // Initialize physics
     const havokInstance = await HavokPhysics();
@@ -50,8 +62,7 @@ const createScene = async function () {
     const rampPhysics = new PhysicsAggregate(ramp, PhysicsShapeType.BOX, { mass: 0 }, scene);
 
 
-
-    // Define character position
+    //Define character position
     let characterMesh = MeshBuilder.CreateSphere("character", { diameter : 2 ,segments : 8}, scene);
     let characterPhysics = new PhysicsAggregate(characterMesh, PhysicsShapeType.SPHERE, { mass: 0.5, restitution : 0.30,friction :1, mesh : characterMesh}, scene);
     characterMesh.position = new Vector3(0, 20, 0);
@@ -59,8 +70,8 @@ const createScene = async function () {
     characterMesh.material.diffuseTexture = new Texture(TextureChar, scene);
     characterMesh.receiveShadows = true;
     characterPhysics.body.setLinearDamping(0.4);
-    
     characterPhysics.body.setCollisionCallbackEnabled(true);
+    
 
     // shadow generator
     const shadowGenerator = new ShadowGenerator(4096, light);
