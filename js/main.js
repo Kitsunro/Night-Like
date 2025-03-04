@@ -51,6 +51,10 @@ const createScene = async function () {
     ramp.rotation.x = Math.PI / 6; // Rotate the ramp to create an incline
     new BABYLON.PhysicsAggregate(ramp, BABYLON.PhysicsShapeType.BOX, { mass: 0 }, scene);
 
+    const wall = BABYLON.MeshBuilder.CreateBox("wall", {width: 1, height: 3, depth: 10}, scene);
+    wall.position = new BABYLON.Vector3(0, 1.5, 5); // Adjust position as needed
+    new BABYLON.PhysicsAggregate(wall, BABYLON.PhysicsShapeType.BOX, { mass: 0 }, scene);
+
     // Define character position
     const characterPosition = new BABYLON.Vector3(0, 1, 0);
 
