@@ -1,4 +1,4 @@
-import { Engine, Scene, SceneLoader , CubeTexture, ShadowGenerator, FreeCamera, HemisphericLight, MeshBuilder, Color3, Vector3, PhysicsShapeType, PhysicsAggregate, HavokPlugin, StandardMaterial, Texture, DirectionalLight } from "@babylonjs/core";
+import { Engine, Ray, Scene, SceneLoader, CubeTexture, ShadowGenerator, FreeCamera, HemisphericLight, MeshBuilder, Color3, Vector3, PhysicsShapeType, PhysicsAggregate, HavokPlugin, StandardMaterial, Texture, DirectionalLight } from "@babylonjs/core";
 import Inspector from "@babylonjs/inspector";
 import ThirdPersonCamera from "./ThirdPersoneCamera";
 import Keyboard from "./Keyboard";
@@ -11,19 +11,14 @@ import PerlinNoise from "./../assets/perlinNoise.png";
 let canvas;
 let engine;
 
-
-
-
 canvas = document.getElementById("renderCanvas");
-engine = new Engine(canvas, true,{ preserveDrawingBuffer: true, stencil: true, disableWebGL2Support: false });
+engine = new Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, disableWebGL2Support: false });
 globalThis.HK = await HavokPhysics();
-
 
 const createScene = async function () {
     const scene = new Scene(engine);
     scene.debugLayer.show();
 
-    
     const light = new DirectionalLight("light", new Vector3(0, -1, 0.45), scene);
     light.specular = Color3.Gray();
 
@@ -61,19 +56,59 @@ const createScene = async function () {
     ramp.material.diffuseColor = new Color3(0.5, 0.5, 0.5);
     const rampPhysics = new PhysicsAggregate(ramp, PhysicsShapeType.BOX, { mass: 0 }, scene);
 
-
-    //Define character position
-    let characterMesh = MeshBuilder.CreateSphere("character", { diameter : 2 ,segments : 8}, scene);
-    let characterPhysics = new PhysicsAggregate(characterMesh, PhysicsShapeType.SPHERE, { mass: 0.5, restitution : 0.30,friction :1, mesh : characterMesh}, scene);
+    // Define character position
+    let characterMesh = MeshBuilder.CreateSphere("character", { diameter: 2, segments: 8 }, scene);
+    let characterPhysics = new PhysicsAggregate(characterMesh, PhysicsShapeType.SPHERE, { mass: 0.5, restitution: 0.30, friction: 1 }, scene);
     characterMesh.position = new Vector3(0, 20, 0);
     characterMesh.material = new StandardMaterial("characterMaterial", scene);
     characterMesh.material.diffuseTexture = new Texture(TextureChar, scene);
     characterMesh.receiveShadows = true;
     characterPhysics.body.setLinearDamping(0.4);
     characterPhysics.body.setCollisionCallbackEnabled(true);
-    
 
-    // shadow generator
+    // Create a small box impostor under the character for collision detection
+    let collisionBox = MeshBuilder.CreateBox("collisionBox", { width: 1, height: 0.1, depth: 1 }, scene);
+    collisionBox.position = new Vector3(0, -1.1, 0); // Position it just below the character
+    collisionBox.isVisible = false; // Make it invisible
+    collisionBox.checkCollisions = true; // Enable collision detection
+    let collisionBoxPhysics = new PhysicsAggregate(collisionBox, PhysicsShapeType.BOX, { mass: 0 }, scene);
+    collisionBoxPhysics.body.setCollisionCallbackEnabled(true);
+    characterMesh.addChild(collisionBox); // Attach it to the character
+
+    let isJumping = false;
+
+    // Détection de collision avec le sol
+    scene.onBeforeRenderObservable.add(() => {
+        // Initialiser une variable pour savoir si le personnage est en contact avec le sol
+        let isOnGround = false;
+
+        // Raycasts autour du personnage pour détecter le sol (en plusieurs points)
+        const raycastLength = 1.2; // Longueur du raycast pour vérifier la hauteur du personnage
+        const offsetY = 0.1; // Décalage vertical pour ne pas se heurter au personnage directement
+        const raycastOrigins = [
+            new Vector3(characterMesh.position.x - 0.5, characterMesh.position.y + offsetY, characterMesh.position.z), // Gauche
+            new Vector3(characterMesh.position.x + 0.5, characterMesh.position.y + offsetY, characterMesh.position.z), // Droite
+            new Vector3(characterMesh.position.x, characterMesh.position.y + offsetY, characterMesh.position.z) // Centre
+        ];
+
+        // Raycasts pour chaque origine
+        for (let i = 0; i < raycastOrigins.length; i++) {
+            const ray = new Ray(raycastOrigins[i], new Vector3(0, -1, 0), raycastLength); // Ray vers le bas
+            const hit = scene.pickWithRay(ray, (mesh) => mesh !== characterMesh && mesh.isVisible);
+
+            if (hit.hit) {
+                isOnGround = true; // Le personnage touche le sol
+                break; // Si un raycast touche un sol, on arrête la boucle
+            }
+        }
+
+        // Si le personnage est en contact avec le sol, il peut sauter
+        if (isOnGround) {
+            isJumping = false; // Le personnage touche le sol, il peut sauter à nouveau.
+        }
+    });
+
+    // Shadow generator
     const shadowGenerator = new ShadowGenerator(4096, light);
     shadowGenerator.addShadowCaster(characterMesh);
     shadowGenerator.addShadowCaster(ground);
@@ -84,21 +119,17 @@ const createScene = async function () {
     const camera = thirdPersonCamera.getCamera();
 
     let inputMap = {};
-    let isJumping = false;
 
     window.addEventListener("keydown", (event) => {
         inputMap[event.key] = true;
     });
+
     window.addEventListener("keyup", (event) => {
         inputMap[event.key] = false;
     });
 
-    
-
     // Update character position based on input
     scene.onBeforeRenderObservable.add(() => {
-        //const dt = engine.getDeltaTime() / 1000; // Convert ms to seconds
-
         // Clamp character velocity
         const velocity = characterPhysics.body.getLinearVelocity();
         const maxVelocity = 25;
@@ -108,21 +139,13 @@ const createScene = async function () {
         }
 
         const keyboard = new Keyboard(scene, camera, window);
-        
         keyboard.updateCharacterVelocity(characterPhysics, characterMesh, camera, inputMap);
-        
-        
-        // Jump logic
+
+        // Gestion du saut
         if (inputMap[" "] && !isJumping) {
-            characterPhysics.body.applyImpulse(new Vector3(0, 5, 0), characterMesh.position);
+            const jumpImpulse = new Vector3(0, 5, 0); // Impulsion constante pour le saut
+            characterPhysics.body.applyImpulse(jumpImpulse, characterMesh.position);
             isJumping = true;
-            // Add collision observable to reset jump state each time the character lands
-            const observable = characterPhysics.body.getCollisionObservable();
-            if (observable) {
-                observable.add(() => {
-                    isJumping = false;
-                });
-            }
         }
     });
 
@@ -131,9 +154,9 @@ const createScene = async function () {
 
 createScene().then((scene) => {
     engine.runRenderLoop(function () {
-      if (scene) {
-        scene.render();
-      }
+        if (scene) {
+            scene.render();
+        }
     });
 });
 
