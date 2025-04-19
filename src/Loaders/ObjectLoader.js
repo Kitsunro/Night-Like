@@ -1,5 +1,5 @@
 import { SceneLoader, Vector3, PhysicsAggregate, PhysicsShapeType, MeshBuilder } from "@babylonjs/core";
-import Test from "./../../assets/object/Test.glb";
+import map1 from "./../../assets/object/map1.glb";
 
 
 export class ObjectLoader {
@@ -10,19 +10,21 @@ export class ObjectLoader {
     }
 
     async load(){
-        this.loadModel(Test, new Vector3(6, 4, 6), new Vector3(0, -3, 0), new Vector3(0, 0, 0));
+        this.loadModel(map1, new Vector3(16, 16, 16), new Vector3(0, -3, 0), new Vector3(0, 0, 0));
     }
 
     async loadModel(model,scale,position,rotation){
         try{
             await SceneLoader.ImportMeshAsync("",model,"",this.scene).then((result) => {
-                const mesh = result.meshes[1];
-                mesh.scaling = scale;
-                mesh.position = position;
-                mesh.rotation = rotation;
-                new PhysicsAggregate(mesh, PhysicsShapeType.MESH, { mass: 0 }, this.scene);
-                this.models.push(mesh);
-                mesh.receiveShadows = true;
+                const meshes = result.meshes.slice(1, result.meshes.length);
+                console.log(meshes);
+                meshes.forEach((mesh) => {
+                    mesh.scaling = scale;
+                    mesh.position = position;
+                    mesh.rotation = rotation;
+                    new PhysicsAggregate(mesh, PhysicsShapeType.MESH, { mass: 0 }, this.scene);
+                    this.models.push(mesh);
+                });
             });
         }catch(error){
             console.error("Error loading model:", error);
