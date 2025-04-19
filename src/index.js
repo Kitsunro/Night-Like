@@ -1,4 +1,5 @@
 import { Engine, Ray, Scene, SceneLoader, CubeTexture, ShadowGenerator, FreeCamera, HemisphericLight, MeshBuilder, Color3, Vector3, PhysicsShapeType, PhysicsAggregate, HavokPlugin, StandardMaterial, Texture, DirectionalLight } from "@babylonjs/core";
+import { ObjectLoader } from "./Loaders/ObjectLoader";
 import Inspector from "@babylonjs/inspector";
 import ThirdPersonCamera from "./ThirdPersoneCamera";
 import Keyboard from "./Keyboard";
@@ -34,10 +35,14 @@ const createScene = async function () {
     skyboxMaterial.reflectionTexture = CubeTexture.CreateFromImages(skyboxIMGs, scene);
     skyboxMaterial.reflectionTexture.coordinatesMode = Texture.SKYBOX_MODE;
 
+
     // Initialize physics
     const havokInstance = await HavokPhysics();
     const physics = new HavokPlugin(true, havokInstance);
     scene.enablePhysics(new Vector3(0, -18, 0), physics);
+
+    //loading the object
+    new ObjectLoader(scene,physics).load();
 
     const ground = MeshBuilder.CreateGroundFromHeightMap("ground", PerlinNoise, { width: 250, height: 250, subdivisions: 256, minHeight: 0, maxHeight: 14 }, scene);
     ground.material = new StandardMaterial("groundMaterial", scene);
@@ -49,31 +54,15 @@ const createScene = async function () {
         groundPhysics = new PhysicsAggregate(ground, PhysicsShapeType.MESH, { mass: 0 }, scene);
     });
 
-    const ramp = MeshBuilder.CreateBox("ramp", { width: 10, height: 1, depth: 10 }, scene);
-    ramp.position = new Vector3(5, 0.5, 0);
-    ramp.rotation = new Vector3(0, 0, Math.PI / 6);
-    ramp.material = new StandardMaterial("rampMaterial", scene);
-    ramp.material.diffuseColor = new Color3(0.5, 0.5, 0.5);
-    const rampPhysics = new PhysicsAggregate(ramp, PhysicsShapeType.BOX, { mass: 0 }, scene);
-
     // Define character position
     let characterMesh = MeshBuilder.CreateSphere("character", { diameter: 2, segments: 8 }, scene);
     let characterPhysics = new PhysicsAggregate(characterMesh, PhysicsShapeType.SPHERE, { mass: 0.5, restitution: 0.30, friction: 1 }, scene);
-    characterMesh.position = new Vector3(0, 20, 0);
+    characterMesh.position = new Vector3(0, 25, 0);
     characterMesh.material = new StandardMaterial("characterMaterial", scene);
     characterMesh.material.diffuseTexture = new Texture(TextureChar, scene);
     characterMesh.receiveShadows = true;
     characterPhysics.body.setLinearDamping(0.4);
     characterPhysics.body.setCollisionCallbackEnabled(true);
-
-    // Create a small box impostor under the character for collision detection
-    let collisionBox = MeshBuilder.CreateBox("collisionBox", { width: 1, height: 0.1, depth: 1 }, scene);
-    collisionBox.position = new Vector3(0, -1.1, 0); // Position it just below the character
-    collisionBox.isVisible = false; // Make it invisible
-    collisionBox.checkCollisions = true; // Enable collision detection
-    let collisionBoxPhysics = new PhysicsAggregate(collisionBox, PhysicsShapeType.BOX, { mass: 0 }, scene);
-    collisionBoxPhysics.body.setCollisionCallbackEnabled(true);
-    characterMesh.addChild(collisionBox); // Attach it to the character
 
     let isJumping = false;
 
@@ -112,7 +101,6 @@ const createScene = async function () {
     const shadowGenerator = new ShadowGenerator(4096, light);
     shadowGenerator.addShadowCaster(characterMesh);
     shadowGenerator.addShadowCaster(ground);
-    shadowGenerator.addShadowCaster(ramp);
     shadowGenerator.usePoissonSampling = true;
 
     const thirdPersonCamera = new ThirdPersonCamera(scene, characterMesh);
