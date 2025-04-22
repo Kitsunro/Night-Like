@@ -25,6 +25,13 @@ Night-Like is a BabylonJS-based platformer game that aims to provide a realistic
     ```sh
     npm run start
     ```
+## How to play
+
+- **Z**: Move forward
+- **D**: Move right
+- **Q**: Move left
+- **S**: Move back
+- **SpaceBar**: Jump
 
 ## Future Goals
 
