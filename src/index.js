@@ -1,3 +1,142 @@
-window.onload = () => { 
-    console.log('Hello, world!'); 
+import { Engine, Ray, Scene, SceneLoader, CubeTexture, ShadowGenerator, FreeCamera, HemisphericLight, MeshBuilder, Color3, Vector3, PhysicsShapeType, PhysicsAggregate, HavokPlugin, StandardMaterial, Texture, DirectionalLight } from "@babylonjs/core";
+import { ObjectLoader } from "./Loaders/ObjectLoader";
+import Inspector from "@babylonjs/inspector";
+import ThirdPersonCamera from "./ThirdPersoneCamera";
+import Keyboard from "./Keyboard";
+import SkyboxMaker from "./Loaders/SkyboxMaker";
+import HavokPhysics from "@babylonjs/havok";
+import TextureChar from "./../assets/player/red.webp";
+
+let canvas;
+let engine;
+
+canvas = document.getElementById("renderCanvas");
+engine = new Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, disableWebGL2Support: false });
+globalThis.HK = await HavokPhysics();
+
+const createScene = async function () {
+    const scene = new Scene(engine);
+    scene.debugLayer.show();
+
+    const light1 = new DirectionalLight("light1", new Vector3(0, -1, 0.45), scene);
+    light1.specular = Color3.Gray();
+    const light2 = new DirectionalLight("light2", new Vector3(0, 1, 0.45), scene);
+    light2.specular = Color3.Gray();
+
+    // Skybox hdr
+    const skyboxIMGs = SkyboxMaker.getImages();
+    const skybox = MeshBuilder.CreateBox("skybox", { size: 1000 }, scene);
+    const skyboxMaterial = new StandardMaterial("skyboxMaterial", scene);
+    skyboxMaterial.backFaceCulling = false;
+    skyboxMaterial.disableLighting = true;
+    skybox.material = skyboxMaterial;
+    skybox.infiniteDistance = true;
+    skyboxMaterial.disableLighting = true;
+    skyboxMaterial.reflectionTexture = CubeTexture.CreateFromImages(skyboxIMGs, scene);
+    skyboxMaterial.reflectionTexture.coordinatesMode = Texture.SKYBOX_MODE;
+
+
+    // Initialize physics
+    const havokInstance = await HavokPhysics();
+    const physics = new HavokPlugin(true, havokInstance);
+    scene.enablePhysics(new Vector3(0, -18, 0), physics);
+
+    //loading the object
+    new ObjectLoader(scene,physics).load();
+
+    // Define character position
+    let characterMesh = MeshBuilder.CreateSphere("character", { diameter: 2, segments: 8 }, scene);
+    let characterPhysics = new PhysicsAggregate(characterMesh, PhysicsShapeType.SPHERE, { mass: 0.5, restitution: 0.30, friction: 1 }, scene);
+    characterMesh.position = new Vector3(0, 25, 0);
+    characterMesh.material = new StandardMaterial("characterMaterial", scene);
+    characterMesh.material.diffuseTexture = new Texture(TextureChar, scene);
+    characterMesh.receiveShadows = true;
+    characterPhysics.body.setLinearDamping(0.4);
+    characterPhysics.body.setCollisionCallbackEnabled(true);
+
+    let isJumping = false;
+
+    // Détection de collision avec le sol
+    scene.onBeforeRenderObservable.add(() => {
+        // Initialiser une variable pour savoir si le personnage est en contact avec le sol
+        let isOnGround = false;
+
+        // Raycasts autour du personnage pour détecter le sol (en plusieurs points)
+        const raycastLength = 1.2; // Longueur du raycast pour vérifier la hauteur du personnage
+        const offsetY = 0.1; // Décalage vertical pour ne pas se heurter au personnage directement
+        const raycastOrigins = [
+            new Vector3(characterMesh.position.x - 0.5, characterMesh.position.y + offsetY, characterMesh.position.z), // Gauche
+            new Vector3(characterMesh.position.x + 0.5, characterMesh.position.y + offsetY, characterMesh.position.z), // Droite
+            new Vector3(characterMesh.position.x, characterMesh.position.y + offsetY, characterMesh.position.z) // Centre
+        ];
+
+        // Raycasts pour chaque origine
+        for (let i = 0; i < raycastOrigins.length; i++) {
+            const ray = new Ray(raycastOrigins[i], new Vector3(0, -1, 0), raycastLength); // Ray vers le bas
+            const hit = scene.pickWithRay(ray, (mesh) => mesh !== characterMesh && mesh.isVisible);
+
+            if (hit.hit) {
+                isOnGround = true; // Le personnage touche le sol
+                break; // Si un raycast touche un sol, on arrête la boucle
+            }
+        }
+
+        // Si le personnage est en contact avec le sol, il peut sauter
+        if (isOnGround) {
+            isJumping = false; // Le personnage touche le sol, il peut sauter à nouveau.
+        }
+    });
+
+    // Shadow generator
+    const shadowGenerator = new ShadowGenerator(4096, light1);
+    shadowGenerator.addShadowCaster(characterMesh);
+    shadowGenerator.usePoissonSampling = true;
+
+    const thirdPersonCamera = new ThirdPersonCamera(scene, characterMesh);
+    const camera = thirdPersonCamera.getCamera();
+
+    let inputMap = {};
+
+    window.addEventListener("keydown", (event) => {
+        inputMap[event.key] = true;
+    });
+
+    window.addEventListener("keyup", (event) => {
+        inputMap[event.key] = false;
+    });
+
+    // Update character position based on input
+    scene.onBeforeRenderObservable.add(() => {
+        // Clamp character velocity
+        const velocity = characterPhysics.body.getLinearVelocity();
+        const maxVelocity = 25;
+
+        if (velocity.length() > maxVelocity) {
+            characterPhysics.body.setLinearVelocity(velocity.scale(maxVelocity / velocity.length()));
+        }
+
+        const keyboard = new Keyboard(scene, camera, window);
+        keyboard.updateCharacterVelocity(characterPhysics, characterMesh, camera, inputMap);
+
+        // Gestion du saut
+        if (inputMap[" "] && !isJumping) {
+            const jumpImpulse = new Vector3(0, 5, 0); // Impulsion constante pour le saut
+            characterPhysics.body.applyImpulse(jumpImpulse, characterMesh.position);
+            isJumping = true;
+        }
+    });
+
+    return scene;
 };
+
+createScene().then((scene) => {
+    engine.runRenderLoop(function () {
+        if (scene) {
+            scene.render();
+        }
+    });
+});
+
+window.addEventListener("resize", function () {
+    engine.resize();
+});

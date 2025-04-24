@@ -10,7 +10,7 @@
         "strictNullChecks": true,
         "preserveConstEnums": true,
         "sourceMap": true,
-        "rootDir": "js",
+        "rootDir": "./src",
         "esModuleInterop": true,
         "allowJs": true,
         "forceConsistentCasingInFileNames": true,
