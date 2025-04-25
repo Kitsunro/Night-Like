@@ -44,15 +44,15 @@ const createScene = async function () {
     //loading the object
     new ObjectLoader(scene,physics).load();
 
-    const ground = MeshBuilder.CreateGroundFromHeightMap("ground", PerlinNoise, { width: 250, height: 250, subdivisions: 256, minHeight: 0, maxHeight: 14 }, scene);
-    ground.material = new StandardMaterial("groundMaterial", scene);
-    ground.material.diffuseTexture = new Texture(TextureGround, scene);
-    ground.position = new Vector3(0, -15, 0);
-    ground.receiveShadows = true;
-    let groundPhysics;
-    ground.onMeshReadyObservable.add(() => {
-        groundPhysics = new PhysicsAggregate(ground, PhysicsShapeType.MESH, { mass: 0 }, scene);
-    });
+    //const ground = MeshBuilder.CreateGroundFromHeightMap("ground", PerlinNoise, { width: 250, height: 250, subdivisions: 256, minHeight: 0, maxHeight: 14 }, scene);
+    //ground.material = new StandardMaterial("groundMaterial", scene);
+    //ground.material.diffuseTexture = new Texture(TextureGround, scene);
+    //ground.position = new Vector3(0, -15, 0);
+    //ground.receiveShadows = true;
+    //let groundPhysics;
+    //ground.onMeshReadyObservable.add(() => {
+    //    groundPhysics = new PhysicsAggregate(ground, PhysicsShapeType.MESH, { mass: 0 }, scene);
+    //});
 
     // Define character position
     let characterMesh = MeshBuilder.CreateSphere("character", { diameter: 2, segments: 8 }, scene);
@@ -98,9 +98,9 @@ const createScene = async function () {
     });
 
     // Shadow generator
-    const shadowGenerator = new ShadowGenerator(4096, light);
+    const shadowGenerator = new ShadowGenerator(1024, light);
     shadowGenerator.addShadowCaster(characterMesh);
-    shadowGenerator.addShadowCaster(ground);
+    //shadowGenerator.addShadowCaster(ground);
     shadowGenerator.usePoissonSampling = true;
 
     const thirdPersonCamera = new ThirdPersonCamera(scene, characterMesh);

@@ -1,5 +1,5 @@
 import { SceneLoader, Vector3, PhysicsAggregate, PhysicsShapeType, MeshBuilder } from "@babylonjs/core";
-import map1 from "./../../assets/object/map1.glb";
+import map1 from "./../../assets/object/map2.glb";
 
 
 export class ObjectLoader {
@@ -10,7 +10,7 @@ export class ObjectLoader {
     }
 
     async load(){
-        this.loadModel(map1, new Vector3(16, 16, 16), new Vector3(0, -3, 0), new Vector3(0, 0, 0));
+        this.loadModel(map1, new Vector3(3, 3, 3), new Vector3(0, -3, 0), new Vector3(0, 0, 0));
     }
 
     async loadModel(model,scale,position,rotation){
@@ -22,6 +22,7 @@ export class ObjectLoader {
                     mesh.scaling = scale;
                     mesh.position = position;
                     mesh.rotation = rotation;
+                    mesh.receiveShadows = true;
                     new PhysicsAggregate(mesh, PhysicsShapeType.MESH, { mass: 0 }, this.scene);
                     this.models.push(mesh);
                 });
