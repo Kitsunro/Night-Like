@@ -40,6 +40,12 @@ Night-Like is a BabylonJS-based platformer game that aims to provide a realistic
 - **Expanded Levels**: Create multiple levels with increasing difficulty and complexity.
 - **Multiplayer Support**: Implement multiplayer features for a shared gaming experience.
 
+## Video Preview
+
+[![Watch the video](https://img.youtube.com/vi/ds3zkV06IKM/0.jpg)](https://youtu.be/ds3zkV06IKM)
+
+Click the image above to watch a preview of Night-Like in action!
+
 ## License
 
 This project is licensed under the MIT License.
