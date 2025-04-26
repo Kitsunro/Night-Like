@@ -116,6 +116,29 @@ const createScene = async function () {
         inputMap[event.key] = false;
     });
 
+    const startPosition = new Vector3(0, 2, 0); // Position de départ
+characterMesh.position = startPosition.clone(); // Initialiser le joueur à la position de départ
+
+// Ajouter un gestionnaire pour la touche de respawn
+window.addEventListener("keydown", (event) => {
+    if (event.key === "r" || event.key === "R") { // Vérifier si la touche "R" est pressée
+        console.log("Respawn au point de départ !");
+        
+        // Réinitialiser la vitesse et la rotation
+        characterPhysics.body.setLinearVelocity(Vector3.Zero()); // Réinitialiser la vitesse
+        characterPhysics.body.setAngularVelocity(Vector3.Zero()); // Réinitialiser la rotation
+
+        // Désactiver temporairement la physique
+        characterPhysics.dispose(); // Supprimer temporairement la physique
+
+        // Repositionner le joueur
+        characterMesh.position = startPosition.clone(); // Repositionner le mesh
+
+        // Réactiver la physique
+        characterPhysics = new PhysicsAggregate(characterMesh, PhysicsShapeType.SPHERE, { mass: 0.5, restitution: 0.3, friction: 1 }, scene);
+    }
+});
+
     // Update character position based on input
     scene.onBeforeRenderObservable.add(() => {
         // Clamp character velocity
