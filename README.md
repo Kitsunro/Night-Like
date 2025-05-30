@@ -1,3 +1,6 @@
+# Membres du Projet
+**Louis Malmassary, Anthony Vasta, Mohamed Younes**
+
 # Night-Like
 
 Night-Like is a BabylonJS-based platformer game that aims to provide a realistic physics experience using the Havok physics engine. The game will feature various elements such as items, portals, and more to create an exhaustive and engaging gameplay experience.
@@ -32,6 +35,7 @@ Night-Like is a BabylonJS-based platformer game that aims to provide a realistic
 - **Q**: Move left
 - **S**: Move back
 - **SpaceBar**: Jump
+- **R**: Reset position to the beginning of the current level
 
 ## Future Goals
 
@@ -39,6 +43,12 @@ Night-Like is a BabylonJS-based platformer game that aims to provide a realistic
 - **Enhanced Physics**: Further refine the physics interactions for more realistic behavior.
 - **Expanded Levels**: Create multiple levels with increasing difficulty and complexity.
 - **Multiplayer Support**: Implement multiplayer features for a shared gaming experience.
+
+## Video Preview
+
+[![Watch the video](https://img.youtube.com/vi/ds3zkV06IKM/0.jpg)](https://youtu.be/ds3zkV06IKM)
+
+Click the image above to watch a preview of Night-Like in action!
 
 ## License
 
