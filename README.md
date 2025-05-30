@@ -50,6 +50,10 @@ Night-Like is a BabylonJS-based platformer game that aims to provide a realistic
 
 Click the image above to watch a preview of Night-Like in action!
 
+## Link to play the game
+
+https://night-like.onrender.com/
+
 ## License
 
 This project is licensed under the MIT License.
