@@ -17,7 +17,7 @@ globalThis.HK = await HavokPhysics();
 function showCompletionMessage() {
     // Créer un élément HTML pour afficher le message
     const message = document.createElement("div");
-    message.innerText = "🎉 Félicitations, vous avez terminé le niveau ! 🎉";
+    message.innerText = "🎉 Félicitations, vous avez terminé le niveau 1 ! 🎉";
     message.style.position = "absolute";
     message.style.top = "50%";
     message.style.left = "50%";
@@ -69,10 +69,16 @@ const createScene = async function () {
     //loading the object
     new ObjectLoader(scene,physics).load();
 
+    // Définir la position de départ
+    let currentLevel = 1;
+    const startPositionLevel1 = new Vector3(-50, -15, 5);
+    const startPositionLevel2 = new Vector3(-1000, 10, 0); // Choisis une position lointaine pour le niveau 2
+    let startPosition = startPositionLevel1.clone();
+
     // Define character position
     let characterMesh = MeshBuilder.CreateSphere("character", { diameter: 2, segments: 8 }, scene);
     let characterPhysics = new PhysicsAggregate(characterMesh, PhysicsShapeType.SPHERE, { mass: 0.5, restitution: 0.30, friction: 1 }, scene);
-    characterMesh.position = new Vector3(0, 0, 0);
+    characterMesh.position = startPosition.clone();
     characterMesh.material = new StandardMaterial("characterMaterial", scene);
     characterMesh.material.diffuseTexture = new Texture(TextureChar, scene);
     characterMesh.receiveShadows = true;
@@ -186,9 +192,20 @@ const createScene = async function () {
 
     // Détection de collision avec le sol
     scene.onBeforeRenderObservable.add(() => {
-        if (characterMesh.position.x < -225 && characterMesh.position.y >= 285) { // Coordonnées de fin de niveau
+        if (currentLevel === 1 && characterMesh.position.x < -225 && characterMesh.position.y >= 285) { // Coordonnées de fin de niveau
             showCompletionMessage(); // Afficher un message
-            console.log("Fin de niveau !");
+            setTimeout(() => {
+            // TP vers le niveau 2
+            characterPhysics.body.setLinearVelocity(Vector3.Zero());
+            characterPhysics.body.setAngularVelocity(Vector3.Zero());
+            characterPhysics.dispose();
+            characterMesh.position = startPositionLevel2.clone();
+            characterPhysics = new PhysicsAggregate(characterMesh, PhysicsShapeType.SPHERE, { mass: 0.5, restitution: 0.3, friction: 1 }, scene);
+            currentLevel = 2;
+            startPosition = startPositionLevel2.clone(); // Pour le respawn "R"
+
+        }, 3000);
+            
         }
         // Initialiser une variable pour savoir si le personnage est en contact avec le sol
         let isOnGround = false;
@@ -247,9 +264,6 @@ const createScene = async function () {
     window.addEventListener("keyup", (event) => {
         inputMap[event.key] = false;
     });
-
-    // Définir la position de départ
-    const startPosition = new Vector3(0, 10, 0); // Position de départ
 
 // Ajouter un gestionnaire pour la touche de respawn
 window.addEventListener("keydown", (event) => {
